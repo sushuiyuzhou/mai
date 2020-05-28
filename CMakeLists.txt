@@ -3,4 +3,7 @@ project(mai)
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_executable(mai main.cpp)
+add_executable(mai
+               main.cpp
+               lib/Context.cpp
+               lib/Node.cpp)
