@@ -7,20 +7,34 @@
 
 #include "Context.h"
 #include "Index.h"
-#include "Node.h"
-#include "utils.h"
 
+#include <memory>
+#include <unordered_map>
 #include <unordered_set>
 
 namespace mai {
 
+  class Node;
+
+  using NodePtr = std::shared_ptr<Node>;
+
   class Graph {
   public:
       template<typename... Args>
-      Node operator()(Args... args)
+      Node& operator()(Args... args)
       {
-          return std::move(mai::Node(mai::Index(std::forward<Args>(args)...)));
+          auto ind = mai::Index(std::forward<Args>(args)...);
+          if (exists(ind)) {
+              return *_cache[ind];
+          }
+          else {
+              auto nodePtr = std::make_shared<Node>(ind);
+              addNode(ind, nodePtr);
+              return *nodePtr;
+          }
       }
+
+      bool exists(Index const& ind) const;
 
   private:
       Graph() = default;
@@ -29,13 +43,11 @@ namespace mai {
 
       friend class Node;
 
-      void addIndex(Index const& ind)
-      {
-          mai::getLogger(log_level::DEBUG).log(ind, "# adding index to graph:");
-          _cache.insert(ind);
-      }
+      void addNode(Index const& ind, NodePtr ptr);
 
-      std::unordered_set<Index, IndexHash, IndexEqual> _cache;
+      Node& vallidateThenAddNode(Index const& ind, NodePtr ptr);
+
+      std::unordered_map<Index, NodePtr, IndexHash, IndexEqual> _cache;
   };
 
   inline Graph& getGraph()

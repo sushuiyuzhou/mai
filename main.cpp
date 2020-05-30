@@ -51,10 +51,10 @@ auto test_node_2()
     auto root = mai::Node(indRoot);
 
     auto E = root.attach(mai::Index("E"));
-    E->set(std::vector{1, 2});
+    E.set(std::vector{1, 2});
 
-    auto EF = E->attach(mai::Index("F"));
-    (*EF) = 42;
+    auto EF = E.attach(mai::Index("F"));
+    EF = 42;
 
     std::cout << root;
 
@@ -65,12 +65,12 @@ auto test_graph()
 {
     auto g = mai::getGraph();
     g("1", "2", "3") = std::vector{1, 2, 3, 4, 5};
-    std::cout << g("1", "2", "3"); // TODO: resolve ref
+    std::cout << g("1", "2", "3");
 
     auto n = g("1", "2", "3").attach(mai::Index("4", "5"));
-    (*n) = std::array<double, 5>{1, 2, 3, 4, 5};
+    n = std::array<double, 5>{1, 2, 3, 4, 5};
 
-    std::cout << *n;
+    std::cout << n;
 }
 
 int main()

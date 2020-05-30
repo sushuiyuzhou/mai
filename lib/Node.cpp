@@ -20,12 +20,19 @@ namespace mai {
            _graph{getGraph()}
   {
       mai::getLogger(log_level::DEBUG).log(path(), "# constructing node with path():");
-      _graph.addIndex(path());
   }
 
   Node::~Node()
   {
       mai::getLogger(log_level::DEBUG).log(path(), "# deleting node with path():");
+  }
+
+  Node& Node::attach(Index sym)
+  {
+      auto ptr = std::make_shared<Node>(std::move(sym), path());
+      _cdn.push_back(ptr);
+      _graph.vallidateThenAddNode(ptr->path(), ptr);
+      return *ptr;
   }
 
   void Node::registerResource() const

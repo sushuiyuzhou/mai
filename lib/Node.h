@@ -114,12 +114,7 @@ namespace mai {
           set(std::forward<T>(t));
       }
 
-      NodePtr attach(Index sym)
-      {
-          auto ptr = std::make_shared<Node>(std::move(sym), path());
-          _cdn.push_back(ptr);
-          return ptr;
-      }
+      Node& attach(Index sym);
 
       template<typename T>
       NodePtr attachWith(Index sym, T&& t)

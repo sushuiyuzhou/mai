@@ -27,7 +27,7 @@ namespace mai {
               if (!msg.empty()) {
                   _os << msg << " : " << t << std::endl;
               }
-              else { // TODO: try constexpr if to detech print() member function
+              else { // TODO: try constexpr if to check for member functions such as print()
                   _os << t << std::endl;
               }
           }
