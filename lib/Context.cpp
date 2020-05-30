@@ -14,11 +14,26 @@ namespace mai {
   {
       auto r = _cache.find(ind);
       if (r!=_cache.end()) {
-          mai::getLogger().log(ind.to_string(), "# resoruce exists: ");
+          mai::getLogger().log("# resoruce exists: ", ind.to_string());
       }
       else {
-          mai::getLogger().log(ind.to_string(), "# add resource: ");
+          mai::getLogger().log("# add resource: ", ind.to_string());
           _cache[ind] = ptr;
+      }
+  }
+
+  bool Context::exists(Index const& ind) const
+  {
+      return _cache.find(ind)!=_cache.end();
+  }
+
+  ResourcePtr Context::getResource(Index const& ind)
+  {
+      if (exists(ind)) {
+          return _cache[ind];
+      }
+      else {
+          return {};
       }
   }
 

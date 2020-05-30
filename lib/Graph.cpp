@@ -14,7 +14,7 @@ namespace mai {
 
   void Graph::addNode(Index const& ind, NodePtr ptr)
   {
-      mai::getLogger(log_level::INFO).log(ind, "# adding node with index:");
+      mai::getLogger(log_level::INFO).log("# adding node with index:", ind);
       _cache[ind] = std::move(ptr);
   }
 

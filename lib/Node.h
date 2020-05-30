@@ -92,7 +92,7 @@ namespace mai {
 
       Index path() const
       {
-          return std::move(_prefix+_sym); // + returns a new Index
+          return std::move(_prefix+_sym); // + returns a new Index object
       }
 
       // setter and getter for content
@@ -116,14 +116,20 @@ namespace mai {
 
       Node& attach(Index sym);
 
-      template<typename T>
-      NodePtr attachWith(Index sym, T&& t)
+      template<typename... Args>
+      Node& attach(Args... args)
       {
-          auto ptr = std::make_shared<Node>(std::move(sym), path());
-          ptr->set(std::forward<T>(t));
-          _cdn.push_back(ptr);
-          return ptr;
+          return attach(Index(std::forward<Args>(args)...));
       }
+
+//      template<typename T>
+//      NodePtr attachWith(Index sym, T&& t)
+//      {
+//          auto ptr = std::make_shared<Node>(std::move(sym), path());
+//          ptr->set(std::forward<T>(t));
+//          _cdn.push_back(ptr);
+//          return ptr;
+//      }
 
       friend std::ostream& operator<<(std::ostream& os, Node const& node);
 

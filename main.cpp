@@ -71,6 +71,9 @@ auto test_graph()
     n = std::array<double, 5>{1, 2, 3, 4, 5};
 
     std::cout << n;
+
+    n.attach("6", "7") = 1234567;
+    std::cout << n.attach("6", "7");
 }
 
 int main()

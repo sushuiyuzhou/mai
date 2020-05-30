@@ -21,7 +21,7 @@ namespace mai {
   class Logger {
   public:
       template<typename T = std::string>
-      void log(T const& t = std::string{}, std::string const& msg = {})
+      void log(std::string const& msg = {}, T const& t = std::string{})
       {
           if (_lv>=g_log_level) {
               if (!msg.empty()) {

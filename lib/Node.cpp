@@ -19,12 +19,17 @@ namespace mai {
            _cxt{getContext()},
            _graph{getGraph()}
   {
-      mai::getLogger(log_level::DEBUG).log(path(), "# constructing node with path():");
+      mai::getLogger(log_level::DEBUG).log("# constructing node with path():", path());
+      // check if resource is saved (to context), if yes, attach so that data is preserved
+      auto ind = path();
+      if (_cxt.exists(ind)) {
+          _ctn = _cxt.getResource(ind);
+      }
   }
 
   Node::~Node()
   {
-      mai::getLogger(log_level::DEBUG).log(path(), "# deleting node with path():");
+      mai::getLogger(log_level::DEBUG).log("# deleting node with path():", path());
   }
 
   Node& Node::attach(Index sym)

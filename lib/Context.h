@@ -26,7 +26,11 @@ namespace mai {
         return os;
     }
 
+    bool exists(Index const& ind) const;
+
     void addResource(Index const& ind, ResourcePtr ptr);
+
+    ResourcePtr getResource(Index const& ind);
   };
 
   inline Context& getContext()
