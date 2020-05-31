@@ -42,11 +42,16 @@ namespace mai {
       }
 
       // helper utils
+      bool empty() const
+      {
+          return _idx.empty();
+      }
+
       std::string to_string() const
       {
           std::string res{};
           for (auto const& e: _idx) {
-              res += "."+e;
+              res += "+"+e;
           }
           return res;
       }
@@ -105,12 +110,11 @@ namespace mai {
     std::hash<IndexElemType> hash{};
     std::size_t operator()(Index const& key) const
     {
-//        std::size_t res{0};
-//        for (auto const& e : key._idx) {
-//            res += hash(e);
-//        }
-//        return res;
-        return hash(key.to_string());
+        std::size_t res{0};
+        for (auto const& e : key._idx) {
+            res += hash(e);
+        }
+        return res;
     }
   };
 

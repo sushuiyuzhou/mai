@@ -35,7 +35,7 @@ namespace mai {
       auto root = g();
       std::cout << root; // empty
 
-      root = "some resource";
+      root = std::string("some resource"); // TODO: make const char[N] acceptable resource
       std::cout << root; // node with resource attached
 
       auto n1 = g("a", "b");

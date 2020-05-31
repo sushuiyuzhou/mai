@@ -3,10 +3,19 @@
 //
 
 #include "example/basics.h"
+#include "example/serdes.h"
 
 int main()
 {
-    mai::run_examples();
+
+    try {
+        mai::run_examples();
+        mai::test();
+
+    }
+    catch (std::exception const& e) {
+        std::cout << e.what() << "\n";
+    }
     return 0;
 }
 

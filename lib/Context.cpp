@@ -38,6 +38,16 @@ namespace mai {
       }
   }
 
+  void Context::saveResources()
+  {
+      mai::getLogger().log("[Context] persist resources");
+      for (auto const& e : _cache) {
+          if (!e.first.empty()) {
+              e.second->Serialize(e.first);
+          }
+      }
+  }
+
   std::ostream& operator<<(std::ostream& os, Context const& ctx)
   {
       os << "<Context> with " << ctx._cache.size() << " registered resources." << std::endl;

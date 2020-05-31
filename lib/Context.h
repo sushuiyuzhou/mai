@@ -30,6 +30,11 @@ namespace mai {
 
       ResourcePtr getResource(Index const& ind);
 
+      ~Context()
+      {
+          saveResources();
+      }
+
   private:
       Context() = default;
 
@@ -40,6 +45,8 @@ namespace mai {
       void addResource(Index const& ind, ResourcePtr ptr);
 
       std::unordered_map<Index, ResourcePtr, IndexHash, IndexEqual> _cache;
+
+      void saveResources();
   };
 
   inline Context& getContext()

@@ -10,6 +10,8 @@
 #include "utils.h"
 
 #include <typeinfo>
+#include <filesystem>
+#include <fstream>
 
 namespace mai {
 
@@ -23,8 +25,8 @@ namespace mai {
 
   class ResouceBase {
   public:
-      virtual void Serialize() { };
-      virtual void Deserialize() { };
+      virtual void Serialize(Index const&) { };
+      virtual void Deserialize(Index const&) { };
       virtual ~ResouceBase() = default;
 
       virtual void print(std::ostream& os) const = 0;
@@ -45,9 +47,25 @@ namespace mai {
           os << _r << std::endl;
       }
 
-      void Serialize() override { }
+      void Serialize(Index const& ind) override
+      {
+          auto p = std::filesystem::path(mai::g_root_dir)/ind.to_string();
+          std::ofstream os{p};
+          if (!os.is_open()) {
+              throw std::runtime_error(std::string("file not opened: ")+p.string());
+          }
+          os << _r;
+      }
 
-      void Deserialize() override { }
+      void Deserialize(Index const& ind) override
+      {
+          auto p = std::filesystem::path(mai::g_root_dir)/ind.to_string();
+          std::ifstream is{p};
+          if (!is.is_open()) {
+              throw std::runtime_error(std::string("file not opened: ")+p.string());
+          }
+          is >> _r;
+      }
 
 //      ~Resource() override = default;
       ~Resource() override
