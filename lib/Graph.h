@@ -36,8 +36,14 @@ namespace mai {
 
       bool exists(Index const& ind) const;
 
+      friend std::ostream& operator<<(std::ostream& os, Graph const& g);
+
   private:
       Graph() = default;
+
+      Graph(Graph const&) = delete;
+
+      Graph(Graph&&) = delete;
 
       friend Graph& getGraph();
 

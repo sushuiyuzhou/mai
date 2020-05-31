@@ -9,11 +9,37 @@
 
 namespace mai {
 
+  namespace { // print methods
+
+    template<typename T>
+    std::ostream& operator<<(std::ostream& os, std::vector<T> const& ctn)
+    {
+        os << "# vector<" << typeid(T{}).name() << "> : ";
+        for (auto const& e: ctn) {
+            os << e << ", ";
+        }
+        os << std::endl;
+        return os;
+    }
+
+    template<typename T, size_t N>
+    std::ostream& operator<<(std::ostream& os, std::array<T, N> const& ctn)
+    {
+        os << "# std::array<T, N>" << typeid(T{}).name() << "> : ";
+        for (auto const& e: ctn) {
+            os << e << ", ";
+        }
+        os << std::endl;
+        return os;
+    }
+
+  }
+
   enum log_level {
     DEBUG = 1,
     INFO = 2,
-    WARN = 3,
-    ERROR = 4
+//    WARN = 3,
+//    ERROR = 4
   };
 
   static const auto g_log_level = log_level::INFO; // TODO: make configurable

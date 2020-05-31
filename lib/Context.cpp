@@ -14,10 +14,11 @@ namespace mai {
   {
       auto r = _cache.find(ind);
       if (r!=_cache.end()) {
-          mai::getLogger().log("# resoruce exists: ", ind.to_string());
+          mai::getLogger().log("[Context] change resource: ", ind.to_string());
+          _cache[ind] = ptr;
       }
       else {
-          mai::getLogger().log("# add resource: ", ind.to_string());
+          mai::getLogger().log("[Context] add resource: ", ind.to_string());
           _cache[ind] = ptr;
       }
   }
@@ -35,6 +36,12 @@ namespace mai {
       else {
           return {};
       }
+  }
+
+  std::ostream& operator<<(std::ostream& os, Context const& ctx)
+  {
+      os << "<Context> with " << ctx._cache.size() << " registered resources." << std::endl;
+      return os;
   }
 
 }

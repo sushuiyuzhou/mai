@@ -105,11 +105,12 @@ namespace mai {
     std::hash<IndexElemType> hash{};
     std::size_t operator()(Index const& key) const
     {
-        std::size_t res{0};
-        for (auto const& e : key._idx) {
-            res += hash(e);
-        }
-        return res;
+//        std::size_t res{0};
+//        for (auto const& e : key._idx) {
+//            res += hash(e);
+//        }
+//        return res;
+        return hash(key.to_string());
     }
   };
 

@@ -7,6 +7,7 @@
 
 #include "Context.h"
 #include "Index.h"
+#include "utils.h"
 
 #include <typeinfo>
 
@@ -14,32 +15,6 @@ namespace mai {
 
   class Context;
   class Graph;
-
-  namespace {
-
-    template<typename T>
-    std::ostream& operator<<(std::ostream& os, std::vector<T> const& ctn)
-    {
-        os << "# vector<" << typeid(T{}).name() << "> : ";
-        for (auto const& e: ctn) {
-            os << e << ", ";
-        }
-        os << std::endl;
-        return os;
-    }
-
-    template<typename T, size_t N>
-    std::ostream& operator<<(std::ostream& os, std::array<T, N> const& ctn)
-    {
-        os << "# std::array<T, N>" << typeid(T{}).name() << "> : ";
-        for (auto const& e: ctn) {
-            os << e << ", ";
-        }
-        os << std::endl;
-        return os;
-    }
-
-  }
 
   template<typename T>
   struct IsSerializable {
@@ -60,7 +35,10 @@ namespace mai {
   class Resource : public ResouceBase {
   public:
       explicit Resource(T&& r)
-              :_r(std::forward<T>(r)) { }
+              :_r(std::forward<T>(r))
+      {
+          getLogger(log_level::DEBUG).log("constructing resource with: ", r);
+      }
 
       void print(std::ostream& os) const override
       {
@@ -71,7 +49,11 @@ namespace mai {
 
       void Deserialize() override { }
 
-      ~Resource() override = default;
+//      ~Resource() override = default;
+      ~Resource() override
+      {
+          getLogger(log_level::DEBUG).log("remove resource: ", _r);
+      }
   private:
       T _r;
   };
@@ -99,14 +81,11 @@ namespace mai {
       template<typename T>
       void set(T&& t)
       {
-          _ctn = std::make_shared<Resource<T>>(std::forward<T>(t));
-          registerResource();
+          auto ctn = std::make_shared<Resource<T>>(std::forward<T>(t));
+          registerResource(ctn);
       }
 
-      auto get() const
-      {
-          return _ctn;
-      }
+      ResourcePtr get() const;
 
       template<typename T>
       void operator=(T&& t)
@@ -122,28 +101,14 @@ namespace mai {
           return attach(Index(std::forward<Args>(args)...));
       }
 
-//      template<typename T>
-//      NodePtr attachWith(Index sym, T&& t)
-//      {
-//          auto ptr = std::make_shared<Node>(std::move(sym), path());
-//          ptr->set(std::forward<T>(t));
-//          _cdn.push_back(ptr);
-//          return ptr;
-//      }
-
       friend std::ostream& operator<<(std::ostream& os, Node const& node);
 
   private:
-      void registerResource() const;
+      void registerResource(ResourcePtr ptr) const;
 
   private:
       Index _prefix, _sym;
-
       Context& _cxt;
-      ResourcePtr _ctn;
-
-      Children _cdn;
-
       Graph& _graph;
   };
 

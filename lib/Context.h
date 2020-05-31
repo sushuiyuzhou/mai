@@ -18,19 +18,28 @@ namespace mai {
   using ResourcePtr = std::shared_ptr<ResouceBase>;
 
   struct Context {
-    std::unordered_map<Index, ResourcePtr, IndexHash, IndexEqual> _cache;
 
-    friend std::ostream& operator<<(std::ostream& os, Context const& ctx)
-    {
-        os << "<Context> with " << ctx._cache.size() << " nodes" << std::endl;
-        return os;
-    }
+      friend class Node;
 
-    bool exists(Index const& ind) const;
+      friend Context& getContext();
 
-    void addResource(Index const& ind, ResourcePtr ptr);
+      friend std::ostream& operator<<(std::ostream& os, Context const& ctx);
 
-    ResourcePtr getResource(Index const& ind);
+  public:
+      bool exists(Index const& ind) const;
+
+      ResourcePtr getResource(Index const& ind);
+
+  private:
+      Context() = default;
+
+      Context(Context const&) = delete;
+
+      Context(Context&&) = delete;
+
+      void addResource(Index const& ind, ResourcePtr ptr);
+
+      std::unordered_map<Index, ResourcePtr, IndexHash, IndexEqual> _cache;
   };
 
   inline Context& getContext()
