@@ -9,6 +9,7 @@
 #include <condition_variable>
 #include <functional>
 #include <future>
+#include <iostream>
 #include <queue>
 #include <memory>
 #include <mutex>
@@ -32,7 +33,7 @@ namespace mai {
       void push(T v)
       {
           std::lock_guard<std::mutex> lk{mt};
-          _q.push(v);
+          _q.push(std::move(v));
           _cd.notify_one();
       }
 
@@ -152,9 +153,9 @@ namespace mai {
       }
 
       template<typename F>
-      std::future<std::result_of_t<F>> submit(F f)
+      std::future<std::result_of_t<F()>> submit(F f)
       {
-          using resultType = std::result_of_t<F>;
+          using resultType = std::result_of_t<F()>;
 
           std::packaged_task<resultType()> task(std::move(f));
           std::future<resultType> res{task.get_future()};

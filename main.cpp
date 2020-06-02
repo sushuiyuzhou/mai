@@ -9,8 +9,8 @@
 int main()
 {
     try {
-        mai::run_examples();
-        mai::test_ser_des();
+//        mai::run_examples();
+//        mai::test_ser_des();
         mai::test_thread_pool();
     }
     catch (std::exception const& e) {
