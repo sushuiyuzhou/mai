@@ -1,205 +1,214 @@
 //
-// Created by suhuiyuzhou on 01/06/2020.
+// Created by sushuiyuzhou on 10/8/2020.
 //
 
-#ifndef MAI_POOL_H
-#define MAI_POOL_H
+#ifndef TP__POOL_H
+#define TP__POOL_H
 
 #include <atomic>
+#include <chrono>
 #include <condition_variable>
 #include <functional>
 #include <future>
 #include <iostream>
-#include <queue>
+#include <map>
 #include <memory>
 #include <mutex>
-#include <type_traits>
+#include <queue>
+#include <string>
+#include <thread>
 #include <vector>
 
-namespace mai {
+namespace utils {
 
-  template<typename T>
+class ThreadPool {
+
   class Queue {
-      // thread-safe queue for holding tasks
+    using Task = std::function<void()>;
+
+    std::map<int, Task> _q;
+    mutable std::mutex _m;
+    std::condition_variable _cd;
+
+    int _c;
+
   public:
-      Queue() { }
+    Queue() : _q{}, _m{}, _cd{}, _c{0} {}
 
-      Queue(Queue const& other)
-      {
-          std::lock_guard<std::mutex> lk{other.mt};
-          _q = other._q;
+    int submit(Task t) {
+      std::lock_guard<std::mutex> lg{_m};
+      _c++;
+      _q.emplace(int{_c}, std::move(t));
+
+      _cd.notify_one();
+
+      return _c;
+    }
+
+    int prioritize(int ind) {
+      std::lock_guard<std::mutex> lg{_m};
+
+      if (_q.find(ind) == _q.end()) {
+        throw std::out_of_range("Task with index" + std::to_string(ind)
+                                    + "doesn't exist");
       }
 
-      void push(T v)
-      {
-          std::lock_guard<std::mutex> lk{mt};
-          _q.push(std::move(v));
-          _cd.notify_one();
+      int newInd = _q.begin()->first - 1;
+      auto task = std::move(_q.find(ind)->second);
+      _q.erase(ind);
+      _q.emplace(newInd, std::move(task));
+
+      _cd.notify_one();
+
+      return newInd;
+    }
+
+    size_t size() const {
+      std::lock_guard<std::mutex> lg{_m};
+      return _q.size();
+    }
+
+    bool empty() const {
+      std::lock_guard<std::mutex> lg{_m};
+      return _q.empty();
+    }
+
+    std::unique_ptr<Task> try_pop() {
+      std::lock_guard<std::mutex> lg{_m};
+
+      if (!_q.empty()) {
+        auto res = std::make_unique<Task>(std::move(_q.begin()->second));
+        _q.erase(_q.begin());
+        return res;
       }
 
-      std::shared_ptr<T> wait_and_pop()
-      {
-          std::unique_lock<std::mutex> lk{mt};
-          _cd.wait(lk, [this] { return !_q.empty(); });
-          auto res = std::make_shared<T>(std::move(_q.front()));
-          _q.pop();
-          return res;
+      return {};
+    }
+
+    std::unique_ptr<Task> wait_and_pop() {
+      std::unique_lock<std::mutex> lk{_m};
+
+      if (!_cd.wait_for(lk, std::chrono::seconds(5),
+                        [this]() { return !_q.empty(); })) {
+        throw std::runtime_error("wait_and_pop timed out");
       }
 
-      std::shared_ptr<T> try_pop()
-      {
-          std::lock_guard<std::mutex> lk{mt};
-          if (_q.empty()) {
-              return {};
-          }
-          auto res = std::make_shared<T>(std::move(_q.front()));
-          _q.pop();
-          return res;
-      }
-
-      bool empty() const
-      {
-          std::lock_guard<std::mutex> lk{mt};
-          return _q.empty();
-      }
-
-  private:
-      mutable std::mutex mt;
-      std::queue<T> _q;
-      std::condition_variable _cd;
+      auto res = std::make_unique<Task>(std::move(_q.begin()->second));
+      _q.erase(_q.begin());
+      return res;
+    }
   };
 
-  class FctnWrapper {
-      struct ImplBase {
-        virtual void call() = 0;
+  class ThreadPoolImpl {
+    Queue _q;
 
-        virtual ~ImplBase() { }
-      };
+    std::atomic<bool> _done;
+    std::atomic<bool> _hasRun;
+    int _numThreads;
+    std::vector<std::thread> _threads;
 
-      std::unique_ptr<ImplBase> _impl;
+    bool _waitUntilTasksCompleted;
 
-      template<typename F>
-      struct ImplType : ImplBase {
-        F _f;
-
-        ImplType(F&& f)
-                :_f(std::move(f)) { }
-
-        void call()
-        {
-            _f();
+    void workerThread() {
+      while (!_done || (_waitUntilTasksCompleted && !_q.empty())) {
+        auto task = _q.try_pop();
+        if (task) {
+          task->operator()();
         }
-      };
+        std::this_thread::yield();
+      }
+    }
 
   public:
-      template<typename F>
-      FctnWrapper(F&& f)
-              : _impl(new ImplType<F>(std::move(f))) { }
+    explicit ThreadPoolImpl(int numThreads = 3,
+                            bool waitUntilTasksCompleted = true)
+        : _done{false}, _hasRun{false}, _q{}, _numThreads{0}, _threads{},
+          _waitUntilTasksCompleted(waitUntilTasksCompleted) {
+      int hardwareThreads =
+          static_cast<int>(std::thread::hardware_concurrency());
+      _numThreads =
+          numThreads < hardwareThreads ? numThreads : hardwareThreads;
+    }
 
-      FctnWrapper(FctnWrapper const&) = delete;
+    ThreadPoolImpl(ThreadPoolImpl const &) = delete;
+    ThreadPoolImpl &operator=(ThreadPoolImpl const &) = delete;
+    ThreadPoolImpl(ThreadPoolImpl &&) = delete;
+    ThreadPoolImpl &operator=(ThreadPoolImpl &&) = delete;
 
-      FctnWrapper& operator=(FctnWrapper const&) = delete;
+    ~ThreadPoolImpl() {
+      _done = true;
 
-      FctnWrapper(FctnWrapper&& other)
-      {
-          _impl = std::move(other._impl);
+      for (auto &t : _threads) {
+        if (t.joinable()) {
+          t.join();
+        }
       }
 
-      FctnWrapper& operator=(FctnWrapper&& other)
-      {
-          _impl = std::move(other._impl);
-          return *this;
+      if (!_q.empty()) {
+        std::cerr << "[ThreadPool]: Pending tasks discarded due to early "
+                     "shutdown.\n";
+      }
+    }
+
+    template<typename Func, typename... Args>
+    std::future<std::result_of_t<Func(Args...)>> submit(Func &&func,
+                                                        Args &&... args) {
+      using resultType = std::result_of_t<Func(Args...)>;
+
+      auto task = std::make_shared<std::packaged_task<resultType()>>(
+          [_func{std::forward<Func>(func)},
+              _args{std::make_tuple(std::forward<Args>(args)...)}]() {
+            return std::apply(_func, _args);
+          });
+      auto res = task->get_future();
+
+      _q.submit([task]() { task->operator()(); });
+      return res;
+    }
+
+    void run() {
+      if (_hasRun) {
+        std::cerr << "[ThreadPool]: Can only run once.\n";
+        return;
+      } else {
+        _hasRun = true;
       }
 
-      void call()
-      {
-          _impl->call();
+      for (int i = 0; i < _numThreads; i++) {
+        _threads.emplace_back(&ThreadPoolImpl::workerThread, this);
       }
+    }
   };
 
-  class ThreadsGuard {
-      // RAII for vector of threads
-  private:
-      std::vector<std::thread>& _thrds;
-  public:
-      explicit ThreadsGuard(std::vector<std::thread>
-      & thrds)
-              :_thrds{thrds}
-      {
-      }
+  std::unique_ptr<ThreadPoolImpl> _impl;
 
-      ~ThreadsGuard()
-      {
-          for (std::thread& t : _thrds) {
-              if (t.joinable()) {
-                  t.join();
-              }
-          }
-      }
-  };
+public:
+  explicit ThreadPool(int numThreads = 3,
+                      bool waitUntilTasksCompleted = true)
+      : _impl{std::make_unique<ThreadPoolImpl>(numThreads,
+                                               waitUntilTasksCompleted)} {}
 
-  class ThreadPool {
-      // thread pool that allows waiting for a future for task
-  public:
-      ThreadPool(unsigned numOfThreads = std::thread::hardware_concurrency())
-              :_numThrds{numOfThreads}, _done{false}, _queue{}, _thrds{}, _tg{_thrds}
-      {
-          run();
-      }
+  ThreadPool(ThreadPool const &) = delete;
+  ThreadPool &operator=(ThreadPool const &) = delete;
 
-      ~ThreadPool()
-      {
-          _done = true;
-      }
+  ThreadPool(ThreadPool &&other) noexcept
+      : _impl{std::move(other._impl)} {}
 
-      template<typename F>
-      std::future<std::result_of_t<F()>> submit(F f)
-      {
-          using resultType = std::result_of_t<F()>;
+  ThreadPool &operator=(ThreadPool &&other) noexcept {
+    _impl = std::move(other._impl);
+    return *this;
+  }
 
-          std::packaged_task<resultType()> task(std::move(f));
-          std::future<resultType> res{task.get_future()};
-          _queue.push(std::move(task));
+  template<typename Func, typename... Args>
+  std::future<std::result_of_t<Func(Args...)>> submit(Func &&func,
+                                                      Args &&... args) {
+    return _impl->submit(std::forward<Func>(func),
+                         std::forward<Args>(args)...);
+  }
 
-          return res;
-      }
+  void run() { _impl->run(); }
+};
 
-  private:
-      unsigned _numThrds;
+}// namespace utils
 
-      std::atomic_bool _done;
-
-      Queue<FctnWrapper> _queue;
-
-      std::vector<std::thread> _thrds;
-      ThreadsGuard _tg;
-
-      void run()
-      {
-          try {
-              for (unsigned i{0}; i<_numThrds; i++) {
-                  _thrds.emplace_back(&ThreadPool::worker, this);
-              }
-          }
-          catch (...) {
-              throw;
-          }
-      }
-
-      void worker()
-      {
-          while (!_done) {
-              auto task = _queue.try_pop();
-              if (task) {
-                  task->call();
-              }
-              else {
-                  std::this_thread::yield();
-              }
-          }
-      }
-  };
-
-}
-
-#endif //MAI_POOL_H
+#endif//TP__POOL_H

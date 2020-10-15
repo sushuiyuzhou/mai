@@ -13,47 +13,43 @@
 
 namespace mai {
 
-  class ResouceBase;
+class ResouceBase;
 
-  using ResourcePtr = std::shared_ptr<ResouceBase>;
+using ResourcePtr = std::shared_ptr<ResouceBase>;
 
-  struct Context {
+struct Context {
 
-      friend class Node;
+  friend class Node;
 
-      friend Context& getContext();
+  friend Context &getContext();
 
-      friend std::ostream& operator<<(std::ostream& os, Context const& ctx);
+  friend std::ostream &operator<<(std::ostream &os, Context const &ctx);
 
-  public:
-      bool exists(Index const& ind) const;
+public:
+  bool exists(Index const &ind) const;
 
-      ResourcePtr getResource(Index const& ind);
+  ResourcePtr getResource(Index const &ind);
 
-      ~Context()
-      {
-          saveResources();
-      }
+  ~Context() { saveResources(); }
 
-  private:
-      Context() = default;
+private:
+  Context() = default;
 
-      Context(Context const&) = delete;
+  Context(Context const &) = delete;
 
-      Context(Context&&) = delete;
+  Context(Context &&) = delete;
 
-      void addResource(Index const& ind, ResourcePtr ptr);
+  void addResource(Index const &ind, ResourcePtr ptr);
 
-      std::unordered_map<Index, ResourcePtr, IndexHash, IndexEqual> _cache;
+  std::unordered_map<Index, ResourcePtr, IndexHash, IndexEqual> _cache;
 
-      void saveResources();
-  };
+  void saveResources();
+};
 
-  inline Context& getContext()
-  {
-      static Context ctx{};
-      return ctx;
-  };
-}
+inline Context &getContext() {
+  static Context ctx{};
+  return ctx;
+};
+}// namespace mai
 
-#endif //MAI_CONTEXT_H
+#endif//MAI_CONTEXT_H
